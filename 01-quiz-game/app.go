@@ -22,10 +22,16 @@ func main() {
 	file, _ := os.Open(*fileFlag)
 	defer file.Close()
 
-	reader := bufio.NewReader(file)
+	fileReader := bufio.NewReader(file)
+	stdInReader := bufio.NewReader(os.Stdin)
+
+	completed := 0
+	correct := 0
+
+	fmt.Printf("Welcome to the Quiz!\n")
 
 	for {
-		line, err := reader.ReadString('\n')
+		line, err := fileReader.ReadString('\n')
 
 		if err == io.EOF {
 			break
@@ -35,7 +41,16 @@ func main() {
 		question := split[0]
 		answer := split[1]
 
-		fmt.Println(question)
-		fmt.Println(answer)
+		fmt.Printf("Question #%d\n", completed+1)
+		fmt.Printf("%s\n", question)
+		userAnswer, _ := stdInReader.ReadString('\n')
+
+		completed++
+
+		if answer == userAnswer {
+			correct++
+		}
 	}
+
+	fmt.Printf("All done! You scored %d out of %d\n", correct, completed)
 }
