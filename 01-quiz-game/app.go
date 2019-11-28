@@ -2,13 +2,24 @@ package main
 
 import (
 	"bufio"
+	"flag"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 )
 
 func main() {
-	file, _ := os.Open("./quiz.csv")
+	fileFlag := flag.String("file", "", "The path to the quiz file.")
+	helpFlag := flag.Bool("help", false, "Go for help.")
+	flag.Parse()
+
+	if *helpFlag {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+
+	file, _ := os.Open(*fileFlag)
 	defer file.Close()
 
 	reader := bufio.NewReader(file)
@@ -23,5 +34,8 @@ func main() {
 		split := strings.Split(line, ",")
 		question := split[0]
 		answer := split[1]
+
+		fmt.Println(question)
+		fmt.Println(answer)
 	}
 }
