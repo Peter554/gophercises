@@ -8,11 +8,18 @@ import (
 func main() {
 	handler := defaultHandler()
 
-	m := map[string]string{
+	redirectMap := map[string]string{
 		"/peter554": "https://github.com/peter554",
 	}
 
-	handler = MapHandler(m, handler)
+	handler = mapHandler(redirectMap, handler)
+
+	redirectYAML := `
+- path: /google
+  redirectURL: https://google.com
+`
+
+	handler = yamlHandler(redirectYAML, handler)
 
 	fmt.Println("Serving on :8080")
 	http.ListenAndServe(":8080", handler)
