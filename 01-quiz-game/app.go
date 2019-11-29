@@ -2,77 +2,64 @@ package main
 
 import (
 	"bufio"
+	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
 )
 
-func main() {
-	fileFlag := flag.String("file", "./quiz.csv", "The path to the quiz file.")
-	timeoutFlag := flag.Int("timeout", 5, "The max time to complete the quiz in secondsxs.")
-	helpFlag := flag.Bool("help", false, "Go for help.")
-	flag.Parse()
+func normalize(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
 
-	if *helpFlag {
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
+func main() {
+	fileFlag := flag.String("csv", "./quiz.csv", "The path to the quiz CSV.")
+	timeoutFlag := flag.Int("timeout", 30, "The max time to complete the quiz in seconds.")
+	flag.Parse()
 
 	file, _ := os.Open(*fileFlag)
 	defer file.Close()
 
-	fileReader := bufio.NewReader(file)
-	stdInReader := bufio.NewReader(os.Stdin)
+	csvReader := csv.NewReader(file)
+	records, _ := csvReader.ReadAll()
 
-	questions := make([]string, 0)
-	answers := make([]string, 0)
-
-	for {
-		line, err := fileReader.ReadString('\n')
-
-		if err == io.EOF {
-			break
-		}
-
-		split := strings.Split(line, ",")
-		questions = append(questions, split[0])
-		answers = append(answers, split[1])
-	}
-
+	appState := make(chan string, 1)
 	correct := 0
-	signal := make(chan string, 1)
 
 	go func() {
 		time.Sleep(time.Duration(*timeoutFlag) * time.Second)
-		signal <- "timeout"
+		appState <- "timeout"
 	}()
 
 	go func() {
+		stdInReader := bufio.NewReader(os.Stdin)
 		fmt.Printf("Welcome to the Quiz!\n")
 
-		for i := 0; i < len(questions); i++ {
-			fmt.Printf("Question #%d\n", i+1)
-			fmt.Printf("%s\n", questions[i])
+		for idx, record := range records {
+			fmt.Printf("Question #%d\n", idx+1)
+			fmt.Printf("%s\n", record[0])
 			userAnswer, _ := stdInReader.ReadString('\n')
 
-			if answers[i] == userAnswer {
+			if normalize(record[1]) == normalize(userAnswer) {
+				fmt.Printf("Correct!\n")
 				correct++
+			} else {
+				fmt.Printf("Ooops!\n")
 			}
 		}
 
-		signal <- "all done"
+		appState <- "all done"
 	}()
 
-	status := <-signal
+	state := <-appState
 
-	if status == "all done" {
-		fmt.Printf("All done! You scored %d out of %d\n", correct, len(questions))
+	if state == "all done" {
+		fmt.Printf("All done! You scored %d out of %d\n", correct, len(records))
 	}
 
-	if status == "timeout" {
-		fmt.Printf("Times up! You scored %d out of %d\n", correct, len(questions))
+	if state == "timeout" {
+		fmt.Printf("Times up! You scored %d out of %d\n", correct, len(records))
 	}
 }
