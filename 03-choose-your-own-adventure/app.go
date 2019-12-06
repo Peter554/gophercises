@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 )
@@ -19,17 +20,34 @@ type Option struct {
 }
 
 func main() {
-	bytes, _ := ioutil.ReadFile("./story.json")
+	bytes, err := ioutil.ReadFile("./story.json")
 
-	data := make(map[string]Page)
-	err := json.Unmarshal(bytes, &data)
+	if err != nil {
+		panic(err)
+	}
+
+	pages := make(map[string]Page)
+	err = json.Unmarshal(bytes, &pages)
+
+	if err != nil {
+		panic(err)
+	}
+
+	tmplt, err := template.ParseFiles("./template.html")
 
 	if err != nil {
 		panic(err)
 	}
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(data["intro"].Title))
+		path := r.URL.Path[1:]
+
+		if page, found := pages[path]; found {
+			tmplt.Execute(w, page)
+			return
+		}
+
+		http.Redirect(w, r, "/intro", http.StatusFound)
 	})
 
 	fmt.Println("Serving on :8080")
