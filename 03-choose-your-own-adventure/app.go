@@ -9,14 +9,14 @@ import (
 )
 
 type Page struct {
-	Title   string   `json"title"`
-	Story   []string `json"story"`
-	Options []Option `json"options"`
+	Title   string   `json:"title"`
+	Story   []string `json:"story"`
+	Options []Option `json:"options"`
 }
 
 type Option struct {
-	Text string `json"text"`
-	Arc  string `json"arc"`
+	Text string `json:"text"`
+	Link string `json:"arc"`
 }
 
 func main() {
