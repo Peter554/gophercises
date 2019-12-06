@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 )
 
 type Page struct {
@@ -39,7 +40,15 @@ func main() {
 		panic(err)
 	}
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := story_handler(pages, tmplt)
+	handler = static_handler(handler)
+
+	fmt.Println("Serving on :8080")
+	http.ListenAndServe(":8080", handler)
+}
+
+func story_handler(pages map[string]Page, tmplt *template.Template) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path[1:]
 
 		if page, found := pages[path]; found {
@@ -49,7 +58,19 @@ func main() {
 
 		http.Redirect(w, r, "/intro", http.StatusFound)
 	})
+}
 
-	fmt.Println("Serving on :8080")
-	http.ListenAndServe(":8080", handler)
+func static_handler(fallback http.Handler) http.Handler {
+	fs := http.FileServer(http.Dir("./static"))
+	fs = http.StripPrefix("/static", fs)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if matched, _ := regexp.Match("/static", []byte(r.URL.Path)); matched {
+			fs.ServeHTTP(w, r)
+			return
+		}
+
+		fallback.ServeHTTP(w, r)
+	})
 }

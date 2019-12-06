@@ -1,9 +1,20 @@
-<h1>{{.Title}}</h1>
-{{range .Story}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" type="text/css" href="/static/app.css" />
+    <title>App</title>
+  </head>
+  <body>
+    <h1>{{.Title}}</h1>
+    {{range .Story}}
     <p>{{.}}</p>
-{{end}}
-{{range .Options}}
+    {{end}} {{range .Options}}
     <p>
-        <a href="/{{.Link}}">{{.Text}}</a>
+      <a href="/{{.Link}}">{{.Text}}</a>
     </p>
-{{end}}
+    {{end}}
+  </body>
+</html>
