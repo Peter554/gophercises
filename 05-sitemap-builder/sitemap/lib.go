@@ -7,6 +7,8 @@ import (
 	"github.com/Peter554/gophercises/05-sitemap-builder/links"
 )
 
+// WriteSitemap builds a sitemap from the links provided
+// and writes this to a provided writer.
 func WriteSitemap(ls []links.Link, w io.Writer) {
 	doc := urlset{Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9"}
 

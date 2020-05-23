@@ -17,7 +17,9 @@ func main() {
 
 	links := getInternalLinks(*siteFlag)
 
-	sitemap.WriteSitemap(links, os.Stdout)
+	f, err := os.Create("./sitemap.xml")
+	checkError(err)
+	sitemap.WriteSitemap(links, f)
 }
 
 func checkError(err error) {
@@ -26,21 +28,25 @@ func checkError(err error) {
 	}
 }
 
-func getUrlBase(u string) string {
+func getURLBase(u string) string {
 	p, e := url.Parse(u)
 	checkError(e)
 	return p.Scheme + "://" + p.Host
 }
 
+func isInternalLink(l links.Link, b string) bool {
+	return strings.HasPrefix(l.Href, b) || strings.HasPrefix(l.Href, "/")
+}
+
 func getInternalLinks(u string) []links.Link {
-	b := getUrlBase(u)
 	r, e := http.Get(u)
 	checkError(e)
 	defer r.Body.Close()
 	a := links.GetLinks(r.Body)
 	o := make([]links.Link, 0)
+	b := getURLBase(u)
 	for _, l := range a {
-		if strings.HasPrefix(l.Href, b) || strings.HasPrefix(l.Href, "/") {
+		if isInternalLink(l, b) {
 			o = append(o, l)
 		}
 	}
