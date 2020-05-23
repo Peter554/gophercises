@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,14 +13,25 @@ import (
 )
 
 func main() {
-	siteFlag := flag.String("site", "https://piccalil.li/", "The site for which we wish to build a sitemap")
+	site := flag.String("site", "https://piccalil.li/", "The site for which we wish to build a sitemap")
 	flag.Parse()
 
-	links := getInternalLinks(*siteFlag)
+	ls := links.NewLinkSet()
+	collectSiteLinks(*site, ls)
 
 	f, err := os.Create("./sitemap.xml")
 	checkError(err)
-	sitemap.WriteSitemap(links, f)
+	sitemap.WriteSitemap(ls.Values(), f)
+}
+
+func collectSiteLinks(site string, ls links.LinkSet) {
+	for _, l := range getInternalLinks(site) {
+		if ls.Contains(l) {
+			continue
+		}
+		ls.Add(l)
+		collectSiteLinks(l.Href, ls)
+	}
 }
 
 func checkError(err error) {
@@ -28,17 +40,8 @@ func checkError(err error) {
 	}
 }
 
-func getURLBase(u string) string {
-	p, e := url.Parse(u)
-	checkError(e)
-	return p.Scheme + "://" + p.Host
-}
-
-func isInternalLink(l links.Link, b string) bool {
-	return strings.HasPrefix(l.Href, b) || strings.HasPrefix(l.Href, "/")
-}
-
 func getInternalLinks(u string) []links.Link {
+	fmt.Printf("Getting internal links from %s\n", u)
 	r, e := http.Get(u)
 	checkError(e)
 	defer r.Body.Close()
@@ -46,9 +49,18 @@ func getInternalLinks(u string) []links.Link {
 	o := make([]links.Link, 0)
 	b := getURLBase(u)
 	for _, l := range a {
-		if isInternalLink(l, b) {
+		if strings.HasPrefix(l.Href, "/") {
+			l.Href = b + l.Href
+		}
+		if strings.HasPrefix(l.Href, b) {
 			o = append(o, l)
 		}
 	}
 	return o
+}
+
+func getURLBase(u string) string {
+	p, e := url.Parse(u)
+	checkError(e)
+	return p.Scheme + "://" + p.Host
 }
