@@ -2,26 +2,47 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 
 	"github.com/Peter554/gophercises/05-sitemap-builder/links"
+	"github.com/Peter554/gophercises/05-sitemap-builder/sitemap"
 )
 
 func main() {
 	siteFlag := flag.String("site", "https://piccalil.li/", "The site for which we wish to build a sitemap")
 	flag.Parse()
 
-	links := getLinks(*siteFlag)
+	links := getInternalLinks(*siteFlag)
 
-	fmt.Println(links)
+	sitemap.WriteSitemap(links, os.Stdout)
 }
 
-func getLinks(url string) []links.Link {
-	resp, err := http.Get(url)
+func checkError(err error) {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
-	return links.GetLinks(resp.Body)
+}
+
+func getUrlBase(u string) string {
+	p, e := url.Parse(u)
+	checkError(e)
+	return p.Scheme + "://" + p.Host
+}
+
+func getInternalLinks(u string) []links.Link {
+	b := getUrlBase(u)
+	r, e := http.Get(u)
+	checkError(e)
+	defer r.Body.Close()
+	a := links.GetLinks(r.Body)
+	o := make([]links.Link, 0)
+	for _, l := range a {
+		if strings.HasPrefix(l.Href, b) || strings.HasPrefix(l.Href, "/") {
+			o = append(o, l)
+		}
+	}
+	return o
 }
