@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -41,7 +40,6 @@ func checkError(err error) {
 }
 
 func getInternalLinks(u string) []links.Link {
-	fmt.Printf("Getting internal links from %s\n", u)
 	r, e := http.Get(u)
 	checkError(e)
 	defer r.Body.Close()
@@ -62,5 +60,9 @@ func getInternalLinks(u string) []links.Link {
 func getURLBase(u string) string {
 	p, e := url.Parse(u)
 	checkError(e)
-	return p.Scheme + "://" + p.Host
+	o := &url.URL{
+		Scheme: p.Scheme,
+		Host:   p.Host,
+	}
+	return o.String()
 }
