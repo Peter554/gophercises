@@ -87,7 +87,13 @@ func listCmd(c *cli.Context) error {
 	}
 
 	for _, t := range tasks {
-		if all || !t.Completed {
+		if all {
+			if t.Completed {
+				fmt.Printf("(%d) X %s\n", t.ID, t.Text)
+			} else {
+				fmt.Printf("(%d)   %s\n", t.ID, t.Text)
+			}
+		} else if !t.Completed {
 			fmt.Printf("(%d) %s\n", t.ID, t.Text)
 		}
 	}
