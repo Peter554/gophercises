@@ -2,7 +2,9 @@ package db
 
 import (
 	"encoding/json"
+	"path"
 
+	"github.com/mitchellh/go-homedir"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -22,7 +24,9 @@ type TasksService interface {
 }
 
 func NewTasksService() (TasksService, error) {
-	db, e := bolt.Open("tasks.db", 0666, nil)
+	homedir, e := homedir.Dir()
+	dbPath := path.Join(homedir, "tasks.db")
+	db, e := bolt.Open(dbPath, 0666, nil)
 	if e != nil {
 		return nil, e
 	}
