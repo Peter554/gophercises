@@ -2,4 +2,8 @@ module github.com/peter554/gophercises/07-tasks-cli
 
 go 1.14
 
-require github.com/urfave/cli/v2 v2.2.0
+require (
+	github.com/urfave/cli v1.22.4
+	github.com/urfave/cli/v2 v2.2.0
+	go.etcd.io/bbolt v1.3.4
+)
