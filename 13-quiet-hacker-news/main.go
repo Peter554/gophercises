@@ -9,9 +9,16 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gophercises/quiet_hn/hn"
+)
+
+var (
+	cacheMutex   sync.Mutex
+	cacheStories []item
+	cacheExpires time.Time
 )
 
 func main() {
@@ -63,6 +70,13 @@ func handler(numStories int, tpl *template.Template) http.HandlerFunc {
 }
 
 func getStories(numStories int) ([]item, error) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	if cacheStories != nil && time.Now().Before(cacheExpires) && len(cacheStories) >= numStories {
+		return cacheStories[:numStories], nil
+	}
+
 	var client hn.Client
 	ids, err := client.TopItems()
 	if err != nil {
@@ -83,6 +97,9 @@ func getStories(numStories int) ([]item, error) {
 			}
 		}
 	}
+
+	cacheStories = stories
+	cacheExpires = time.Now().Add(time.Second * 10)
 
 	return stories, nil
 }
