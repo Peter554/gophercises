@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -28,29 +29,27 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
+// item is the same as the hn.Item, but adds the Host field
+type item struct {
+	hn.Item
+	Host string
+}
+
+type templateData struct {
+	Stories []item
+	Time    time.Duration
+}
+
 func handler(numStories int, tpl *template.Template) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		var client hn.Client
-		ids, err := client.TopItems()
+
+		stories, err := getStories(numStories)
 		if err != nil {
-			http.Error(w, "Failed to load top stories", http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		var stories []item
-		for _, id := range ids {
-			hnItem, err := client.GetItem(id)
-			if err != nil {
-				continue
-			}
-			item := parseHNItem(hnItem)
-			if isStoryLink(item) {
-				stories = append(stories, item)
-				if len(stories) >= numStories {
-					break
-				}
-			}
-		}
+
 		data := templateData{
 			Stories: stories,
 			Time:    time.Now().Sub(start),
@@ -63,8 +62,29 @@ func handler(numStories int, tpl *template.Template) http.HandlerFunc {
 	})
 }
 
-func isStoryLink(item item) bool {
-	return item.Type == "story" && item.URL != ""
+func getStories(numStories int) ([]item, error) {
+	var client hn.Client
+	ids, err := client.TopItems()
+	if err != nil {
+		return nil, errors.New("Failed to load top stories")
+	}
+
+	var stories []item
+	for _, id := range ids {
+		hnItem, err := client.GetItem(id)
+		if err != nil {
+			continue
+		}
+		item := parseHNItem(hnItem)
+		if isStoryLink(item) {
+			stories = append(stories, item)
+			if len(stories) >= numStories {
+				break
+			}
+		}
+	}
+
+	return stories, nil
 }
 
 func parseHNItem(hnItem hn.Item) item {
@@ -76,13 +96,6 @@ func parseHNItem(hnItem hn.Item) item {
 	return ret
 }
 
-// item is the same as the hn.Item, but adds the Host field
-type item struct {
-	hn.Item
-	Host string
-}
-
-type templateData struct {
-	Stories []item
-	Time    time.Duration
+func isStoryLink(item item) bool {
+	return item.Type == "story" && item.URL != ""
 }
