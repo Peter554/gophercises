@@ -8,11 +8,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gophercises/quiet_hn/hn"
+)
+
+const (
+	batchSize = 5
 )
 
 var (
@@ -83,25 +88,52 @@ func getStories(numStories int) ([]item, error) {
 		return nil, errors.New("Failed to load top stories")
 	}
 
-	var stories []item
-	for _, id := range ids {
-		hnItem, err := client.GetItem(id)
-		if err != nil {
-			continue
-		}
-		item := parseHNItem(hnItem)
-		if isStoryLink(item) {
-			stories = append(stories, item)
-			if len(stories) >= numStories {
-				break
-			}
-		}
+	stories := []item{}
+	batch := 1
+	for len(stories) < numStories {
+		batchStories := getStoriesBatch(ids[(batch-1)*batchSize : batch*batchSize])
+		stories = append(stories, batchStories...)
+		batch++
 	}
+	stories = stories[:numStories]
 
 	cacheStories = stories
 	cacheExpires = time.Now().Add(time.Second * 10)
 
 	return stories, nil
+}
+
+func getStoriesBatch(ids []int) []item {
+	var client hn.Client
+
+	stories := []item{}
+	var wg sync.WaitGroup
+
+	ordering := map[int]int{}
+
+	for idx, id := range ids {
+		ordering[id] = idx
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			hnItem, err := client.GetItem(id)
+			if err != nil {
+				return
+			}
+			item := parseHNItem(hnItem)
+			if isStoryLink(item) {
+				stories = append(stories, item)
+			}
+		}(id)
+	}
+
+	wg.Wait()
+
+	sort.Slice(stories, func(i, j int) bool {
+		return ordering[stories[i].ID] < ordering[stories[j].ID]
+	})
+
+	return stories
 }
 
 func parseHNItem(hnItem hn.Item) item {
