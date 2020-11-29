@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gophercises/quiet_hn/hn"
+	"github.com/peter554/gophercises/13-quiet-hacker-news/hn"
 )
 
 const (
